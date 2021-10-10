@@ -50,6 +50,8 @@ class BLSTM_CRF(object):
             self.embedded_chars = tf.nn.dropout(self.embedded_chars, self.dropout_rate)
 
         if crf_only:
+            # 如果仅仅使用条件随机场
+            # 下面这个函数并没有条件随机场的逻辑，将词嵌入转化为了每个label对应的概率
             logits = self.project_crf_layer(self.embedded_chars)
         else:
             # blstm
@@ -58,7 +60,7 @@ class BLSTM_CRF(object):
             logits = self.project_bilstm_layer(lstm_output)
         # crf
         loss, trans = self.crf_layer(logits)
-        # CRF decode, pred_ids 是一条最大概率的标注路径
+        # CRF decode, pred_ids 是一条最大概率的标注路径 解码，计算结果
         pred_ids, _ = crf.crf_decode(potentials=logits, transition_params=trans, sequence_length=self.lengths)
         return (loss, logits, trans, pred_ids)
 
@@ -142,21 +144,23 @@ class BLSTM_CRF(object):
 
                 b = tf.get_variable("b", shape=[self.num_labels], dtype=tf.float32,
                                     initializer=tf.zeros_initializer())
-                output = tf.reshape(self.embedded_chars,
-                                    shape=[-1, self.embedding_dims])  # [batch_size, embedding_dims]
-                pred = tf.tanh(tf.nn.xw_plus_b(output, W, b))
+                output = tf.reshape(self.embedded_chars, # 这里应该没有self吧，但是不会有区别
+                                    shape=[-1, self.embedding_dims])  # [batch_size, embedding_dims] 
+                                    # 第一维应该不是batch size。每一个词无论来自于哪一个batch，或者是在sequence 中的位置，其使用的权重都是一样的，
+                pred = tf.tanh(tf.nn.xw_plus_b(output, W, b)) # b应该会加到xw的每一列上
+                # tanh 转化为0-1，应该对应于从属于每一个label的概率
             return tf.reshape(pred, [-1, self.seq_length, self.num_labels])
 
     def crf_layer(self, logits):
         """
         calculate crf loss
-        :param project_logits: [1, num_steps, num_tags]
+        :param project_logits: [1, num_steps, num_tags]  # 第一维不应该是batch size 吗
         :return: scalar loss
         """
         with tf.variable_scope("crf_loss"):
             trans = tf.get_variable(
                 "transitions",
-                shape=[self.num_labels, self.num_labels],
+                shape=[self.num_labels, self.num_labels], # 转移矩阵，不同标签之间的转移
                 initializer=self.initializers.xavier_initializer())
             if self.labels is None:
                 return None, trans
@@ -166,4 +170,4 @@ class BLSTM_CRF(object):
                     tag_indices=self.labels,
                     transition_params=trans,
                     sequence_lengths=self.lengths)
-                return tf.reduce_mean(-log_likelihood), trans
+                return tf.reduce_mean(-log_likelihood), trans  # reduce mean 计算整体的平均值（因为没有给定axis

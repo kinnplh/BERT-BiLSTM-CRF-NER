@@ -44,4 +44,5 @@ if __name__ == '__main__':
     如果想训练，那么直接 指定参数跑，如果想启动服务，那么注释掉train,打开server即可
     """
     train_ner()
+    # python run.py -bert_config_file /Users/kinnplh/Desktop/ListSemantics/chinese_L-12_H-768_A-12/bert_config.json -init_checkpoint /Users/kinnplh/Desktop/ListSemantics/chinese_L-12_H-768_A-12/bert_model.ckpt -data_dir ./NERdata -output_dir ./output_dir -vocab_file /Users/kinnplh/Desktop/ListSemantics/chinese_L-12_H-768_A-12/vocab.txt
     #start_server()
