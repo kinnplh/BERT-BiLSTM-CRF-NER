@@ -5,3 +5,4 @@ bert_base/bert/__pycache__/
 bert_base/server/__pycache__/
 bert_base/train/__pycache__/
 output_dir/
+chinese_L-12_H-768_A-12/
